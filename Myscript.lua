@@ -1,39 +1,55 @@
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local player = Players.LocalPlayer
+-- Buscar posibles remotes peligrosos
+local Events = {"meleeEvent", "ShootEvent", "ReloadEvent"}
 
--- Nombres de admins autorizados para ver y usar el botón
-local admins = {
-    ["gonchii002"] = true,
-    ["AdminEjemplo"] = true,
-}
+-- Crear botón UI
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+ScreenGui.Name = "ExploitKillAll"
 
-if not admins[player.Name] then return end
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Size = UDim2.new(0, 160, 0, 50)
+Button.Position = UDim2.new(1, -170, 0, 80)
+Button.Text = "☠️ KILL ALL ☠️"
+Button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+Button.TextColor3 = Color3.new(1,1,1)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 20
+Button.Draggable = true
+Button.Active = true
 
--- Esperar o crear el RemoteEvent
-local killAllEvent = ReplicatedStorage:FindFirstChild("KillAllEvent")
-if not killAllEvent then
-    killAllEvent = Instance.new("RemoteEvent")
-    killAllEvent.Name = "KillAllEvent"
-    killAllEvent.Parent = ReplicatedStorage
-end
-
--- Crear GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdminKillGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local button = Instance.new("TextButton")
-button.Name = "KillAllButton"
-button.Size = UDim2.new(0,150,0,50)
-button.Position = UDim2.new(0,10,0,10)
-button.BackgroundColor3 = Color3.new(1,0,0)
-button.Text = "KILL ALL INSTANT"
-button.TextColor3 = Color3.new(1,1,1)
-button.Parent = screenGui
-
-button.MouseButton1Click:Connect(function()
-    killAllEvent:FireServer()
+-- Ejecutar muerte masiva
+Button.MouseButton1Click:Connect(function()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+			local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+			
+			if humanoid then
+				-- 1. Intento de remotes vulnerables
+				for _, eventName in pairs(Events) do
+					local event = ReplicatedStorage:FindFirstChild(eventName)
+					if event and event:IsA("RemoteEvent") then
+						for i = 1, 10 do
+							pcall(function()
+								event:FireServer(player)
+							end)
+						end
+					end
+				end
+				
+				-- 2. Daño directo (solo si el servidor lo permite)
+				pcall(function()
+					humanoid:TakeDamage(999999)
+				end)
+				
+				-- 3. Romper los joints (si no está protegido)
+				pcall(function()
+					player.Character:BreakJoints()
+				end)
+			end
+		end
+	end
 end)
